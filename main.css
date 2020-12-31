@@ -1,0 +1,36 @@
+body {
+  color: #eee;
+  background: #121212;
+}
+
+.page-wrapper {
+    display: flex;
+    margin: 15px;
+    background-color: rgb(53, 53, 53);
+  }
+  
+  .row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .column {
+    display: flex;
+    flex-direction: column;
+    flex-basis: 100%;
+    flex: 1;
+  }
+  
+  .big-column {
+    display: flex;
+    flex-direction: column;
+    flex-basis: 100%;
+    flex: 3;
+  }
+  
+  .each-column {
+    height: auto;
+  }
+  

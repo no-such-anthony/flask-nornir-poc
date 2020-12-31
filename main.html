@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="main.css" />
+      </head>
+<body>
+    <form action = "http://localhost:5000/" method = "post">
+<div class='page-wrapper'>
+    <div class='row'>
+      <div class='big-column'>
+        <div class='each-column'>
+          <p>What do you want to break today?</p>
+          <p>
+          <input type="radio" id="inv" name="today" value="inv" 
+            {% if option == 'inv' %}
+              checked="checked"
+            {% endif %}
+            >
+          <label for="inv">Check Inventory</label><br>
+          <input type="radio" id="task" name="today" value="task"
+            {% if option == 'task' %}
+              checked="checked"
+            {% endif %}
+            >
+          <label for="task">Run Test Task</label><br>
+          </p>
+          <p><input type = "submit" value = "process" /></p>
+          <p>Results</p>
+          {{ norn }}
+        </div>
+      </div>
+      <div class='column'>
+        <div class='each-column'>
+          <p>Hosts</p>
+          <textarea name="hosts" cols="42" rows="40" style="overflow:scroll;">{{ hosts }}</textarea>
+        </div>
+      </div>
+      <div class='column'>
+        <div class='each-column'>
+          <p>Groups</p>
+          <textarea name="groups" cols="42" rows="40" style="overflow:scroll;">{{ groups }}</textarea>
+          <p>Defaults</p>
+          <textarea name="defaults" cols="42" rows="40" style="overflow:scroll;">{{ defaults }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+</body>
+</html>
