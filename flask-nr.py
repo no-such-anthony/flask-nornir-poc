@@ -93,31 +93,36 @@ def main():
         ydefaults = request.form['defaults']
         option = request.form['today']
 
-        hosts = yaml.safe_load(yhosts)
-        groups = yaml.safe_load(ygroups)
-        defaults = yaml.safe_load(ydefaults)
-
-        hosts = {} if hosts is None else hosts
-        groups = {} if groups is None else groups
-        defaults = {} if defaults is None else defaults
-
         try:
-            with InitNornir(inventory={ "plugin": "dictInventory",
-                                        "options": {
-                                            "hosts" : hosts,
-                                            "groups": groups,
-                                            "defaults": defaults
-                            }}) as nr:
-
-                if option == 'inv':
-                    norn = inv2html(nr)
-
-                if option == "task":
-                    results = nr.run(task=netmiko_send_command, name="show version", command_string="show version")
-                    norn = results2html(results)
+            hosts = yaml.safe_load(yhosts)
+            groups = yaml.safe_load(ygroups)
+            defaults = yaml.safe_load(ydefaults)
 
         except Exception as e:
-            norn = traceback.format_exc()
+            norn = Markup(f'<pre>{traceback.format_exc()}</pre>')
+
+        else:
+            hosts = {} if hosts is None else hosts
+            groups = {} if groups is None else groups
+            defaults = {} if defaults is None else defaults
+
+            try:
+                with InitNornir(inventory={ "plugin": "dictInventory",
+                                            "options": {
+                                                "hosts" : hosts,
+                                                "groups": groups,
+                                                "defaults": defaults
+                                }}) as nr:
+
+                    if option == 'inv':
+                        norn = inv2html(nr)
+
+                    if option == "task":
+                        results = nr.run(task=netmiko_send_command, name="show version", command_string="show version")
+                        norn = results2html(results)
+
+            except Exception as e:
+                norn = Markup(f'<pre>{traceback.format_exc()}</pre>')
 
         session['hosts'] = yhosts
         session['groups'] = ygroups
