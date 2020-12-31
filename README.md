@@ -13,3 +13,6 @@ Run
 - python flask-nr.py
 
 ydata.py contains default inventory data in yaml format with a couple of Cisco always-on instances.
+
+Todo:
+- javascript, api calls, progress updates
