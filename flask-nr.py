@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, Markup, session
 import yaml
+import json
 import traceback
 import ydata
 from os import urandom
@@ -34,14 +35,23 @@ def dict2html(d):
 
 
 def results2html(results):
-    norn = "<pre>"
+    norn = ''
     for device_name, multi_result in results.items():
-        norn += "="*30 + f" {device_name} " + "="*30 + "\n"
+        norn += f'<h2>{device_name}</h2>\n'
         for result in multi_result:
-            norn += result.name + "\n"
-            if not isinstance(result.result, type(None)):
-                norn += pformat(result.result) + "\n"
-    norn += "</pre>"
+            norn += f'<h3>{result.name}</h3>\n'
+            x = result.result
+            if not isinstance(x, type(None)):
+                norn += '<pre>'
+                if not isinstance(x, str):
+                    if isinstance(x, OrderedDict):
+                        norn += f'{json.dumps(x, indent=2)}\n'
+                    else:
+                        norn += f'{pformat(x, indent=2)}\n'
+                else:
+                    norn += x
+                norn += '</pre>'
+                
     return norn
 
 
