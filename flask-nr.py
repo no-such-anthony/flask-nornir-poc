@@ -21,12 +21,12 @@ from nornir_netmiko import netmiko_send_command
 
 # Import and register custom inventory
 from nornir.core.plugins.inventory import InventoryPluginRegister
-from inventory_helper import DictInventory
+from inventory_plugin import DictInventory
 InventoryPluginRegister.register("dictInventory", DictInventory)
 
 # Custom runner to update client via websocket
 from nornir.core.plugins.runners import RunnersPluginRegister
-from runner_helper import EmitRunner
+from runner_plugin import EmitRunner
 RunnersPluginRegister.register("a_runner", EmitRunner)
 
 
