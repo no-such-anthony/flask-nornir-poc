@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, Markup, session, jsonify
+from flask_socketio import SocketIO
+from flask_socketio import send, emit
 import yaml
 import json
 import traceback
@@ -9,15 +11,23 @@ from pprint import pformat
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = urandom(32)
+socketio = SocketIO(app, cors_allowed_origins='*')
+#socketio = SocketIO(app, cors_allowed_origins='*',logger=True, engineio_logger=True)
 
 
 from nornir import InitNornir
 from nornir_netmiko import netmiko_send_command
 
+
 # Import and register custom inventory
 from nornir.core.plugins.inventory import InventoryPluginRegister
-from dictInventory import DictInventory
+from inventory_helper import DictInventory
 InventoryPluginRegister.register("dictInventory", DictInventory)
+
+# Custom runner to update client via websocket
+from nornir.core.plugins.runners import RunnersPluginRegister
+from runner_helper import EmitRunner
+RunnersPluginRegister.register("a_runner", EmitRunner)
 
 
 def dict2html(d):
@@ -110,9 +120,10 @@ def nornir_inv(hosts, groups, defaults):
 def nornir_run(hosts, groups, defaults):
 
     try:
-        with InitNornir(runner = { 'plugin': "threaded",
+        with InitNornir(runner = { 'plugin': "a_runner",
                                     'options': {
                                         "num_workers": 10,
+                                        "emitter": emitter
                                     },
                         },
                         inventory={ "plugin": "dictInventory",
@@ -144,6 +155,12 @@ def main():
                            defaults=session['defaults'], option=session['option']
                            )
 
+def emitter(msg, msg_type):
+    if msg_type == 'update':
+        socketio.emit('update',msg,namespace='/')
+
+    elif msg_type == 'progress':
+        socketio.emit('progress',msg,namespace='/')
 
 @app.route('/nornir', methods= ['POST'])
 def inv():
@@ -181,4 +198,4 @@ def inv():
 
 
 if __name__ == '__main__':
-   app.run()
+   socketio.run(app)

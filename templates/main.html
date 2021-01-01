@@ -4,6 +4,7 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}" />
         <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
         <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>
+        <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
       </head>
 <body>
 <form action = "http://localhost:5000/" method = "post">
@@ -30,6 +31,8 @@
           <p>
           <input type="button" id="submit" value="submit">
           <p>Results</p>
+          <div id="progress"></div>
+          <ul id="updates"></ul>
           <div id="output"></div>
         </div>
       </div>
