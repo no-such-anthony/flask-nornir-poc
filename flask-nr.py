@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, Markup, session
+from flask import Flask, render_template, request, Markup, session, jsonify
 import yaml
 import json
 import traceback
 import ydata
 from os import urandom
 from pprint import pformat
+from queue import Queue
 
 
 app = Flask(__name__, template_folder='', static_folder='')
@@ -13,10 +14,19 @@ app.secret_key = urandom(32)
 
 from nornir import InitNornir
 from nornir_netmiko import netmiko_send_command
+
+# Import and register custom inventory
 from nornir.core.plugins.inventory import InventoryPluginRegister
 from dictInventory import DictInventory
 InventoryPluginRegister.register("dictInventory", DictInventory)
 
+# Import and register custom runner
+from nornir.core.plugins.runners import RunnersPluginRegister
+from custom_runners import runner_helper
+RunnersPluginRegister.register("my_runner", runner_helper)
+
+
+q = Queue()
 
 def dict2html(d):
     h = f'<ul>\n'
@@ -84,9 +94,55 @@ def inv2html(nr):
     return norn
     
 
-@app.route('/',methods = ['POST', 'GET'])
+def custom_task(task):
+    cmd = 'show version'
+    result = task.run(task=netmiko_send_command, name=cmd, command_string=cmd)
+
+
+def nornir_inv(hosts, groups, defaults):
+    try:
+        with InitNornir(inventory={ "plugin": "dictInventory",
+                                    "options": {
+                                        "hosts" : hosts,
+                                        "groups": groups,
+                                        "defaults": defaults
+                        }}) as nr:
+            norn = inv2html(nr)
+
+    except Exception as e:
+        norn = f'<pre>{traceback.format_exc()}</pre>'
+
+    return norn
+
+
+def nornir_run(hosts, groups, defaults):
+
+    try:
+        with InitNornir(runner = { 'plugin': "my_runner",
+                                    'options': {
+                                        "num_workers": 10,
+                                        "progress_queue": q
+                                    },
+                        },
+                        inventory={ "plugin": "dictInventory",
+                                    "options": {
+                                        "hosts" : hosts,
+                                        "groups": groups,
+                                        "defaults": defaults
+                        }}) as nr:
+            results = nr.run(task=custom_task, name="Custom Task")
+            norn = results2html(results)
+
+    except Exception as e:
+        norn = f'<pre>{traceback.format_exc()}</pre>'
+
+    return norn
+
+
+@app.route('/')
 def main():
 
+    """
     if request.method == 'POST':
         yhosts = request.form['hosts']
         ygroups = request.form['groups']
@@ -106,43 +162,59 @@ def main():
             groups = {} if groups is None else groups
             defaults = {} if defaults is None else defaults
 
-            try:
-                with InitNornir(inventory={ "plugin": "dictInventory",
-                                            "options": {
-                                                "hosts" : hosts,
-                                                "groups": groups,
-                                                "defaults": defaults
-                                }}) as nr:
-
-                    if option == 'inv':
-                        norn = inv2html(nr)
-
-                    if option == "task":
-                        results = nr.run(task=netmiko_send_command, name="show version", command_string="show version")
-                        norn = results2html(results)
-
-            except Exception as e:
-                norn = Markup(f'<pre>{traceback.format_exc()}</pre>')
+            if option == 'inv':
+                norn = nornir_inv(hosts,groups,defaults)
+            elif option == "task":
+                norn = nornir_run(hosts,groups,defaults)
 
         session['hosts'] = yhosts
         session['groups'] = ygroups
         session['defaults'] = ydefaults
         session['norn'] = Markup(norn)
         session['option'] = option
+    """
+    if "hosts" not in session:
+        session['hosts'] = ydata.yhosts
+        session['groups'] = ydata.ygroups
+        session['defaults'] = ydata.ydefaults
+        session['norn'] = ''
+        session['option'] = None
 
-    else:
-        if "hosts" not in session:
-            session['hosts'] = ydata.yhosts
-            session['groups'] = ydata.ygroups
-            session['defaults'] = ydata.ydefaults
-            session['norn'] = ''
-            session['option'] = 'inv'
 
-
-    return render_template('main.html', norn=session['norn'], 
+    return render_template('main2.html', norn=session['norn'], 
                            hosts=session['hosts'], groups=session['groups'], 
                            defaults=session['defaults'], option=session['option']
                            )
+
+@app.route('/inv', methods= ['POST'])
+def inv():
+
+    yhosts = request.form['hosts']
+    ygroups = request.form['groups']
+    ydefaults = request.form['defaults']
+
+    try:
+        hosts = yaml.safe_load(yhosts)
+        groups = yaml.safe_load(ygroups)
+        defaults = yaml.safe_load(ydefaults)
+
+    except Exception as e:
+            norn = f'<pre>{traceback.format_exc()}</pre>'
+
+    else:
+
+        hosts = {} if hosts is None else hosts
+        groups = {} if groups is None else groups
+        defaults = {} if defaults is None else defaults
+
+        norn = nornir_inv(hosts,groups,defaults)
+
+    session['hosts'] = yhosts
+    session['groups'] = ygroups
+    session['defaults'] = ydefaults
+    session['norn'] = Markup(norn)
+
+    return jsonify({'output': norn})
 
 
 if __name__ == '__main__':
