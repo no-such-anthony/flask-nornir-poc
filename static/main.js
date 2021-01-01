@@ -1,21 +1,18 @@
 $(document).ready(function() {
 
   //click behaviour for main buttons
-  $('#nornInv').click(function() {
-      nornInv();
-  });
-
-  $('#nornRun').click(function() {
-      nornRun();
+  $('#submit').click(function() {
+      submitRun();
   });
 
 });
 
-function nornInv() {
+function submitRun() {
     // send ajax POST request to start background job
+    $('#output').html("<h2>running...</h2>").show()
     $.ajax({
         type: 'POST',
-        url: '/inv',
+        url: '/nornir',
         data: $('form').serialize(),
         success: function(data, status, request) {
             $('#output').html(data.output).show();

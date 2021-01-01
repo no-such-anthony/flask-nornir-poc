@@ -8,7 +8,7 @@ from pprint import pformat
 from queue import Queue
 
 
-app = Flask(__name__, template_folder='', static_folder='')
+app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = urandom(32)
 
 
@@ -19,11 +19,6 @@ from nornir_netmiko import netmiko_send_command
 from nornir.core.plugins.inventory import InventoryPluginRegister
 from dictInventory import DictInventory
 InventoryPluginRegister.register("dictInventory", DictInventory)
-
-# Import and register custom runner
-from nornir.core.plugins.runners import RunnersPluginRegister
-from custom_runners import runner_helper
-RunnersPluginRegister.register("my_runner", runner_helper)
 
 
 q = Queue()
@@ -118,10 +113,9 @@ def nornir_inv(hosts, groups, defaults):
 def nornir_run(hosts, groups, defaults):
 
     try:
-        with InitNornir(runner = { 'plugin': "my_runner",
+        with InitNornir(runner = { 'plugin': "threaded",
                                     'options': {
                                         "num_workers": 10,
-                                        "progress_queue": q
                                     },
                         },
                         inventory={ "plugin": "dictInventory",
@@ -142,56 +136,25 @@ def nornir_run(hosts, groups, defaults):
 @app.route('/')
 def main():
 
-    """
-    if request.method == 'POST':
-        yhosts = request.form['hosts']
-        ygroups = request.form['groups']
-        ydefaults = request.form['defaults']
-        option = request.form['today']
-
-        try:
-            hosts = yaml.safe_load(yhosts)
-            groups = yaml.safe_load(ygroups)
-            defaults = yaml.safe_load(ydefaults)
-
-        except Exception as e:
-            norn = Markup(f'<pre>{traceback.format_exc()}</pre>')
-
-        else:
-            hosts = {} if hosts is None else hosts
-            groups = {} if groups is None else groups
-            defaults = {} if defaults is None else defaults
-
-            if option == 'inv':
-                norn = nornir_inv(hosts,groups,defaults)
-            elif option == "task":
-                norn = nornir_run(hosts,groups,defaults)
-
-        session['hosts'] = yhosts
-        session['groups'] = ygroups
-        session['defaults'] = ydefaults
-        session['norn'] = Markup(norn)
-        session['option'] = option
-    """
     if "hosts" not in session:
         session['hosts'] = ydata.yhosts
         session['groups'] = ydata.ygroups
         session['defaults'] = ydata.ydefaults
-        session['norn'] = ''
-        session['option'] = None
+        session['option'] = 'inv'
 
-
-    return render_template('main2.html', norn=session['norn'], 
+    return render_template('main.html',  
                            hosts=session['hosts'], groups=session['groups'], 
                            defaults=session['defaults'], option=session['option']
                            )
 
-@app.route('/inv', methods= ['POST'])
+
+@app.route('/nornir', methods= ['POST'])
 def inv():
 
     yhosts = request.form['hosts']
     ygroups = request.form['groups']
     ydefaults = request.form['defaults']
+    option = request.form['today']
 
     try:
         hosts = yaml.safe_load(yhosts)
@@ -207,12 +170,15 @@ def inv():
         groups = {} if groups is None else groups
         defaults = {} if defaults is None else defaults
 
-        norn = nornir_inv(hosts,groups,defaults)
+        if option == 'inv':
+            norn = nornir_inv(hosts,groups,defaults)
+        elif option == "task":
+            norn = nornir_run(hosts,groups,defaults)
 
     session['hosts'] = yhosts
     session['groups'] = ygroups
     session['defaults'] = ydefaults
-    session['norn'] = Markup(norn)
+    session['option'] = option
 
     return jsonify({'output': norn})
 
