@@ -7,6 +7,7 @@ Requirements
 - pip install nornir
 - pip install nornir-netmiko
 - pip install pyaml
+- pip install Flask-SocketIO
 
 Run
 
