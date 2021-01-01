@@ -5,7 +5,6 @@ import traceback
 import ydata
 from os import urandom
 from pprint import pformat
-from queue import Queue
 
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -20,8 +19,6 @@ from nornir.core.plugins.inventory import InventoryPluginRegister
 from dictInventory import DictInventory
 InventoryPluginRegister.register("dictInventory", DictInventory)
 
-
-q = Queue()
 
 def dict2html(d):
     h = f'<ul>\n'
