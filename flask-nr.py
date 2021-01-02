@@ -5,6 +5,8 @@ import traceback
 import ydata
 from os import urandom
 from pprint import pformat
+from queue import Queue
+import random, string
 
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -16,9 +18,16 @@ from nornir_netmiko import netmiko_send_command
 
 # Import and register custom inventory
 from nornir.core.plugins.inventory import InventoryPluginRegister
-from dictInventory import DictInventory
+from inventory_plugin import DictInventory
 InventoryPluginRegister.register("dictInventory", DictInventory)
 
+# Custom runner with queue for client update polling
+from nornir.core.plugins.runners import RunnersPluginRegister
+from runner_plugin import UpdateRunner
+RunnersPluginRegister.register("a_runner", UpdateRunner)
+
+
+qdict = {}
 
 def dict2html(d):
     h = f'<ul>\n'
@@ -110,9 +119,10 @@ def nornir_inv(hosts, groups, defaults):
 def nornir_run(hosts, groups, defaults):
 
     try:
-        with InitNornir(runner = { 'plugin': "threaded",
+        with InitNornir(runner = { 'plugin': "a_runner",
                                     'options': {
                                         "num_workers": 10,
+                                        "updater": updater
                                     },
                         },
                         inventory={ "plugin": "dictInventory",
@@ -138,6 +148,10 @@ def main():
         session['groups'] = ydata.ygroups
         session['defaults'] = ydata.ydefaults
         session['option'] = 'inv'
+        session['qid'] = ''.join(random.choice(string.ascii_letters) for _ in range(20))
+        qdict[session['qid']] = {}
+        qdict[session['qid']]['updates'] = Queue()
+        qdict[session['qid']]['progress'] = ''
 
     return render_template('main.html',  
                            hosts=session['hosts'], groups=session['groups'], 
@@ -167,6 +181,9 @@ def inv():
         groups = {} if groups is None else groups
         defaults = {} if defaults is None else defaults
 
+        qid = session['qid']
+        qdict[qid]['progress'] = ''
+
         if option == 'inv':
             norn = nornir_inv(hosts,groups,defaults)
         elif option == "task":
@@ -178,6 +195,35 @@ def inv():
     session['option'] = option
 
     return jsonify({'output': norn})
+
+
+def updater(msg, msg_type):
+    qid = session['qid']
+    if msg_type == 'update':
+        qdict[qid]['updates'].put(msg)
+
+    elif msg_type == 'progress':
+        qdict[qid]['progress'] = msg
+
+    
+
+
+@app.route('/nornir/poll')
+def poll():
+    p = ''
+    b = ''
+    if 'qid' in session:
+        qid = session['qid']
+        while qdict[qid]['updates'].qsize()!=0:
+            a = qdict[qid]['updates'].get()
+            p += f'<li>{a}</li>\n'
+        b = qdict[qid]['progress']
+    else:
+        pass
+
+    return jsonify({'updates': p,
+                    'progress': b })
+        
 
 
 if __name__ == '__main__':
