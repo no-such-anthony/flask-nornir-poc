@@ -24,6 +24,3 @@ function submitRun() {
 
 }
 
-function nornRun() {
-    alert('run');
-}

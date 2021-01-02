@@ -16,7 +16,7 @@ from nornir_netmiko import netmiko_send_command
 
 # Import and register custom inventory
 from nornir.core.plugins.inventory import InventoryPluginRegister
-from dictInventory import DictInventory
+from inventory_plugin import DictInventory
 InventoryPluginRegister.register("dictInventory", DictInventory)
 
 

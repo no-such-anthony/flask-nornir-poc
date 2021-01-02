@@ -17,4 +17,5 @@ ydata.py contains default inventory data in yaml format with a couple of Cisco a
 Branches
 
 - main - jquery ajax
-- socket - jquery ajax with socketio progress updates
+- socket - jquery ajax with socketio for pushing out progress updates
+- poll - jquery ajax with polling for progress updates
