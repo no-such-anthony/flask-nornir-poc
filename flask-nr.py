@@ -48,7 +48,7 @@ def dict2html(d):
 
 def results2html(results):
     norn = ''
-    for device_name, multi_result in results.items():
+    for device_name, multi_result in sorted(results.items()):
         norn += f'<h2>{device_name}</h2>\n'
         for result in multi_result:
             norn += f'<h3>{result.name}</h3>\n'
