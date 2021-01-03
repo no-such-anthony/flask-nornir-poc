@@ -12,6 +12,7 @@ function submitRun() {
     $('#output').html("<h2>running...</h2>").show()
     $("#progress").html('').show();
     $("#updates li").remove();
+    $("#submit").prop('disabled', true);
 
     startPoll();
     $.ajax({
@@ -20,6 +21,7 @@ function submitRun() {
         data: $('form').serialize(),
         success: function(data, status, request) {
             $('#output').html(data.output).show();
+            $("#submit").prop('disabled', false);
             stopPoll();
             poll();
         },

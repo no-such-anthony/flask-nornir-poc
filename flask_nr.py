@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, Markup, session, jsonify
+from flask_wtf.csrf import CSRFProtect
 import yaml
 import json
 import traceback
@@ -6,12 +7,17 @@ import ydata
 from os import urandom
 from pprint import pformat
 from queue import Queue
-import random, string
+from uuid import uuid4
 
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = urandom(32)
 
+csrf = CSRFProtect(app)
+
+app.config.update(dict(
+    WTF_CSRF_SECRET_KEY=urandom(32),
+))
 
 from nornir import InitNornir
 from nornir_netmiko import netmiko_send_command
@@ -118,11 +124,13 @@ def nornir_inv(hosts, groups, defaults):
 
 def nornir_run(hosts, groups, defaults):
 
+    s = st.sessions[session['id']]
+
     try:
         with InitNornir(runner = { 'plugin': "a_runner",
                                     'options': {
                                         "num_workers": 10,
-                                        "updater": updater
+                                        "updater": s.data['updater']
                                     },
                         },
                         inventory={ "plugin": "dictInventory",
@@ -139,28 +147,59 @@ def nornir_run(hosts, groups, defaults):
 
     return norn
 
+# We don't want to use Flask session to store app data in the client cookie.
+# We could use Flask-Session with maybe SQLAlchemy/sqlite to store data 
+# on the server, but lets start with something simple that is non-persistent between
+# reloads of the app.
+# Flask session will be used to just store the session_id
+class SessionTable(object):
+    def __init__(self):
+        self.sessions = {}
+
+    def add_session(self,fns):
+        session_id = uuid4().hex
+        self.sessions[session_id] = fns
+        return session_id
+
+
+class FlaskNornirSession(object):
+    def __init__(self):
+        self.data = {}
+
+
+st = SessionTable()
+
 
 @app.route('/')
 def main():
 
-    if "hosts" not in session:
-        session['hosts'] = ydata.yhosts
-        session['groups'] = ydata.ygroups
-        session['defaults'] = ydata.ydefaults
-        session['option'] = 'inv'
-        session['qid'] = ''.join(random.choice(string.ascii_letters) for _ in range(20))
-        qdict[session['qid']] = {}
-        qdict[session['qid']]['updates'] = Queue()
-        qdict[session['qid']]['progress'] = ''
+    if "id" not in session:
+        session['id'] = st.add_session(FlaskNornirSession())
+        s = st.sessions[session['id']]
+        s.data['hosts'] = ydata.yhosts
+        s.data['groups'] = ydata.ygroups
+        s.data['defaults'] = ydata.ydefaults
+        s.data['option'] = 'inv'
+        s.data['updater'] = updater_poll
+        s.data['updates'] = Queue()
+        s.data['progress'] = ''
+    else:
+        s = st.sessions[session['id']]
 
     return render_template('main.html',  
-                           hosts=session['hosts'], groups=session['groups'], 
-                           defaults=session['defaults'], option=session['option']
+                           hosts=s.data['hosts'], groups=s.data['groups'], 
+                           defaults=s.data['defaults'], option=s.data['option']
                            )
 
 
 @app.route('/nornir', methods= ['POST'])
-def inv():
+def nornir():
+
+    if "id" not in session:
+        norn = "Try refreshing the page.  Application must have restarted."
+        return jsonify({'output': norn})
+
+    s = st.sessions[session['id']]
 
     yhosts = request.form['hosts']
     ygroups = request.form['groups']
@@ -181,50 +220,44 @@ def inv():
         groups = {} if groups is None else groups
         defaults = {} if defaults is None else defaults
 
-        qid = session['qid']
-        qdict[qid]['progress'] = ''
+        s.data['progress'] = ''
 
         if option == 'inv':
             norn = nornir_inv(hosts,groups,defaults)
         elif option == "task":
             norn = nornir_run(hosts,groups,defaults)
 
-    session['hosts'] = yhosts
-    session['groups'] = ygroups
-    session['defaults'] = ydefaults
-    session['option'] = option
+    s.data['hosts'] = yhosts
+    s.data['groups'] = ygroups
+    s.data['defaults'] = ydefaults
+    s.data['option'] = option
 
     return jsonify({'output': norn})
 
 
-def updater(msg, msg_type):
-    qid = session['qid']
+def updater_poll(msg, msg_type):
+    s = st.sessions[session['id']]
+
     if msg_type == 'update':
-        qdict[qid]['updates'].put(msg)
+        s.data['updates'].put(msg)
 
     elif msg_type == 'progress':
-        qdict[qid]['progress'] = msg
+        s.data['progress'] = msg
 
     
-
-
 @app.route('/nornir/poll')
 def poll():
-    p = ''
-    b = ''
-    if 'qid' in session:
-        qid = session['qid']
-        while qdict[qid]['updates'].qsize()!=0:
-            a = qdict[qid]['updates'].get()
-            p += f'<li>{a}</li>\n'
-        b = qdict[qid]['progress']
+    progress = ''
+    updates = ''
+    if 'id' in session:
+        s = st.sessions[session['id']]
+        while s.data['updates'].qsize()!=0:
+            update = s.data['updates'].get()
+            updates += f'<li>{update}</li>\n'
+        progress = s.data['progress']
     else:
         pass
 
-    return jsonify({'updates': p,
-                    'progress': b })
+    return jsonify({'updates': updates,
+                    'progress': progress })
         
-
-
-if __name__ == '__main__':
-   app.run()
