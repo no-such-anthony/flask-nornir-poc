@@ -26,7 +26,8 @@ function submitRun() {
             poll();
         },
         error: function() {
-            alert('Unexpected error');
+            stopPoll();
+            $('#output').html("Unexpected error.  Try refreshing the page.").show();
         }
     });
 
