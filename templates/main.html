@@ -7,6 +7,7 @@
       </head>
 <body>
 <form action = "http://localhost:5000/" method = "post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 <div class='page-wrapper'>
     <div class='row'>
       <div class='big-column'>
@@ -29,6 +30,8 @@
           <p>
           <input type="button" id="submit" value="submit">
           <p>Results</p>
+          <div id="progress"></div>
+          <ul id="updates"></ul>
           <div id="output"></div>
         </div>
       </div>
