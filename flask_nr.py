@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, Markup, session, jsonify
+from flask_wtf.csrf import CSRFProtect
 from flask_socketio import SocketIO
 from flask_socketio import send, emit
 import yaml
@@ -7,12 +8,20 @@ import traceback
 import ydata
 from os import urandom
 from pprint import pformat
+from uuid import uuid4
 
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = urandom(32)
+
 socketio = SocketIO(app, cors_allowed_origins='*')
 #socketio = SocketIO(app, cors_allowed_origins='*',logger=True, engineio_logger=True)
+
+csrf = CSRFProtect(app)
+
+app.config.update(dict(
+    WTF_CSRF_SECRET_KEY=urandom(32),
+))
 
 
 from nornir import InitNornir
@@ -26,8 +35,8 @@ InventoryPluginRegister.register("dictInventory", DictInventory)
 
 # Custom runner to update client via websocket
 from nornir.core.plugins.runners import RunnersPluginRegister
-from runner_plugin import EmitRunner
-RunnersPluginRegister.register("a_runner", EmitRunner)
+from runner_plugin import UpdateRunner
+RunnersPluginRegister.register("a_runner", UpdateRunner)
 
 
 def dict2html(d):
@@ -119,11 +128,13 @@ def nornir_inv(hosts, groups, defaults):
 
 def nornir_run(hosts, groups, defaults):
 
+    s = st.sessions[session['id']]
+
     try:
         with InitNornir(runner = { 'plugin': "a_runner",
                                     'options': {
                                         "num_workers": 10,
-                                        "emitter": emitter
+                                        "updater": s.data['updater']
                                     },
                         },
                         inventory={ "plugin": "dictInventory",
@@ -141,19 +152,49 @@ def nornir_run(hosts, groups, defaults):
     return norn
 
 
+# We don't want to use Flask session to store app data in the client cookie.
+# We could use Flask-Session with maybe SQLAlchemy/sqlite to store data 
+# on the server, but lets start with something simple that is non-persistent between
+# reloads of the app.
+# Flask session will be used to just store the session_id
+class SessionTable(object):
+    def __init__(self):
+        self.sessions = {}
+
+    def add_session(self,fns):
+        session_id = uuid4().hex
+        self.sessions[session_id] = fns
+        return session_id
+
+
+class FlaskNornirSession(object):
+    def __init__(self):
+        self.data = {}
+
+
+st = SessionTable()
+
+
 @app.route('/')
 def main():
 
-    if "hosts" not in session:
-        session['hosts'] = ydata.yhosts
-        session['groups'] = ydata.ygroups
-        session['defaults'] = ydata.ydefaults
-        session['option'] = 'inv'
+    if "id" not in session:
+        session['id'] = st.add_session(FlaskNornirSession())
+        s = st.sessions[session['id']]
+        s.data['hosts'] = ydata.yhosts
+        s.data['groups'] = ydata.ygroups
+        s.data['defaults'] = ydata.ydefaults
+        s.data['option'] = 'inv'
+        s.data['updater'] = emitter
+
+    else:
+        s = st.sessions[session['id']]
 
     return render_template('main.html',  
-                           hosts=session['hosts'], groups=session['groups'], 
-                           defaults=session['defaults'], option=session['option']
+                           hosts=s.data['hosts'], groups=s.data['groups'], 
+                           defaults=s.data['defaults'], option=s.data['option']
                            )
+
 
 def emitter(msg, msg_type):
     if msg_type == 'update':
@@ -162,8 +203,15 @@ def emitter(msg, msg_type):
     elif msg_type == 'progress':
         socketio.emit('progress',msg,namespace='/')
 
+
 @app.route('/nornir', methods= ['POST'])
-def inv():
+def nornir():
+
+    if "id" not in session:
+        norn = "Try refreshing the page.  Application must have restarted."
+        return jsonify({'output': norn})
+
+    s = st.sessions[session['id']]
 
     yhosts = request.form['hosts']
     ygroups = request.form['groups']
@@ -189,13 +237,10 @@ def inv():
         elif option == "task":
             norn = nornir_run(hosts,groups,defaults)
 
-    session['hosts'] = yhosts
-    session['groups'] = ygroups
-    session['defaults'] = ydefaults
-    session['option'] = option
+    s.data['hosts'] = yhosts
+    s.data['groups'] = ygroups
+    s.data['defaults'] = ydefaults
+    s.data['option'] = option
 
     return jsonify({'output': norn})
 
-
-if __name__ == '__main__':
-   socketio.run(app)

@@ -3,17 +3,18 @@ from nornir.core.task import AggregatedResult, Task
 from nornir.core.inventory import Host
 from typing import List
 
-# custom runner with as_completed 
-class EmitRunner:
+
+# custom runner using as_completed 
+class UpdateRunner:
     """
     ThreadedRunner runs the task over each host using threads
     Arguments:
         num_workers: number of threads to use
     """
 
-    def __init__(self, num_workers: int = 20, emitter=None) -> None:
+    def __init__(self, num_workers: int = 20, updater=None) -> None:
         self.num_workers = num_workers
-        self._emitter = emitter
+        self._updater = updater
 
     def run(self, task: Task, hosts: List[Host]) -> AggregatedResult:
         """
@@ -32,14 +33,12 @@ class EmitRunner:
                     msg='completed'
                     if worker_result.failed:
                         msg = 'failed'
-                    if self._emitter is not None:
-                        self._emitter(f'{worker_result.host.name} - {msg}.', 'update')
-                        self._emitter(f'#{host_idx}/{host_count}.', 'progress')
+                    if self._updater is not None:
+                        self._updater(f'{worker_result.host.name} - {msg}.','update')
+                        self._updater(f'#{host_idx}/{host_count}.','progress')
                         print(f'{worker_result.host.name} - {msg}.')
                         host_idx += 1
-
         return result
-
 
 
 

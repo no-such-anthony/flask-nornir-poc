@@ -25,6 +25,7 @@ function submitRun() {
     $('#output').html("<h2>running...</h2>").show()
     $("#progress").html('').show();
     $("#updates li").remove();
+    $("#submit").prop('disabled', true);
 
     $.ajax({
         type: 'POST',
@@ -32,15 +33,13 @@ function submitRun() {
         data: $('form').serialize(),
         success: function(data, status, request) {
             $('#output').html(data.output).show();
+            $("#submit").prop('disabled', false);
         },
         error: function() {
-            alert('Unexpected error');
+            $('#output').html("Unexpected error.  Try refreshing the page.").show();
         }
     });
 
 
 }
 
-function nornRun() {
-    alert('run');
-}
