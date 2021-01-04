@@ -1,4 +1,5 @@
 from flask_nr import app
+from flask_socketio import SocketIO
 
 if __name__ == '__main__':
-  app.run()
+  socketio.run(app)
