@@ -7,7 +7,7 @@ $(document).ready(function() {
 
   var socket = io();
   socket.on('connect', function() {
-      socket.send('client connected');
+      console.log('client connected');
   });
 
   socket.on('update', function(msg) {

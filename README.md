@@ -9,10 +9,11 @@ Requirements
 - pip install nornir-netmiko
 - pip install pyaml
 - pip install Flask-SocketIO
+- pip install eventlet
 
 Run
 
-- flask run
+- python flask_nr.py
 
 ydata.py contains default inventory data in yaml format with a couple of Cisco always-on instances.
 
@@ -26,3 +27,4 @@ Some helpful flask links
 
 - https://blog.miguelgrinberg.com/post/running-your-flask-application-over-https
 - https://blog.miguelgrinberg.com/post/how-secure-is-the-flask-user-session
+- https://flask-socketio.readthedocs.io/en/latest/
