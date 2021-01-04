@@ -33,8 +33,6 @@ from runner_plugin import UpdateRunner
 RunnersPluginRegister.register("a_runner", UpdateRunner)
 
 
-qdict = {}
-
 def dict2html(d):
     h = f'<ul>\n'
     if isinstance(d, dict):
