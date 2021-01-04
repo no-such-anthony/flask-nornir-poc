@@ -195,7 +195,7 @@ def main():
                            defaults=s.data['defaults'], option=s.data['option']
                            )
 
-@socketio.on('update')
+
 def emitter(msg, msg_type):
 
     if "id" in session:
@@ -224,7 +224,7 @@ def nornir():
     option = request.form['today']
 
     s.data['socket_id'] = request.form['socket_id']
-    
+
     s.data['hosts'] = yhosts
     s.data['groups'] = ygroups
     s.data['defaults'] = ydefaults
