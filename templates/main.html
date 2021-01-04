@@ -9,6 +9,7 @@
 <body>
 <form action = "http://localhost:5000/" method = "post">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+<input type="hidden" id="socket_id" name="socket_id" value=""/>
 <div class='page-wrapper'>
     <div class='row'>
       <div class='big-column'>

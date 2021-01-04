@@ -2,7 +2,7 @@ $(document).ready(function() {
 
   //click behaviour for main buttons
   $('#submit').click(function() {
-      submitRun();
+      submitRun(socket.id);
   });
 
   var socket = io();
@@ -20,12 +20,13 @@ $(document).ready(function() {
 
 });
 
-function submitRun() {
+function submitRun(socket_id) {
     // send ajax POST request to start background job
     $('#output').html("<h2>running...</h2>").show()
     $("#progress").html('').show();
     $("#updates li").remove();
     $("#submit").prop('disabled', true);
+    $("#socket_id").val(socket_id);
 
     $.ajax({
         type: 'POST',

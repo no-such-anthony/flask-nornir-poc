@@ -195,13 +195,18 @@ def main():
                            defaults=s.data['defaults'], option=s.data['option']
                            )
 
-
+@socketio.on('update')
 def emitter(msg, msg_type):
-    if msg_type == 'update':
-        socketio.emit('update',msg,namespace='/')
 
-    elif msg_type == 'progress':
-        socketio.emit('progress',msg,namespace='/')
+    if "id" in session:
+        s = st.sessions[session['id']]
+        socket_id = s.data.get('socket_id', None)
+        if socket_id is not None:        
+            if msg_type == 'update':
+                emit('update',msg,namespace='/',to=socket_id)
+
+            elif msg_type == 'progress':
+                emit('progress',msg,namespace='/',to=socket_id)
 
 
 @app.route('/nornir', methods= ['POST'])
@@ -217,6 +222,13 @@ def nornir():
     ygroups = request.form['groups']
     ydefaults = request.form['defaults']
     option = request.form['today']
+
+    s.data['socket_id'] = request.form['socket_id']
+    
+    s.data['hosts'] = yhosts
+    s.data['groups'] = ygroups
+    s.data['defaults'] = ydefaults
+    s.data['option'] = option
 
     try:
         hosts = yaml.safe_load(yhosts)
@@ -236,11 +248,6 @@ def nornir():
             norn = nornir_inv(hosts,groups,defaults)
         elif option == "task":
             norn = nornir_run(hosts,groups,defaults)
-
-    s.data['hosts'] = yhosts
-    s.data['groups'] = ygroups
-    s.data['defaults'] = ydefaults
-    s.data['option'] = option
 
     return jsonify({'output': norn})
 
