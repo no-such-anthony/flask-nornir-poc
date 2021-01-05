@@ -13,7 +13,9 @@ Requirements
 
 Run
 
-- python flask_nr.py
+- gunicorn --worker-class eventlet -w 1 flask_nr:app
+
+Requires "pip install gunicorn".  For some reason when starting with "python flask_nr.py" the socketio messages stop working.
 
 ydata.py contains default inventory data in yaml format with a couple of Cisco always-on instances.
 
