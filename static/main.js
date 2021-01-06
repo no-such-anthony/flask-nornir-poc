@@ -5,37 +5,18 @@ $(document).ready(function() {
         submitRun();
     });
 
-    // Hook up ACE editor to all textareas with data-editor attribute
     $(function () {
-        $('textarea[data-editor]').each(function () {
-            var textarea = $(this);
-            var mode = textarea.data('editor');
-
-            var editDiv = $('<div>', {
-                position: 'absolute',
-                width: textarea.width(),
-                height: textarea.height(),
-                'class': textarea.attr('class')
-            }).insertBefore(textarea);
-
-            textarea.css('visibility', 'hidden');
-            textarea.css('width', '0');
-            textarea.css('height', '0');
-
-            var editor = ace.edit(editDiv[0]);
+        $('div[data-editor]').each(function () {
+            var mode = $(this).data('editor');
+            editor = ace.edit($(this)[0]);
             editor.renderer.setShowGutter(false);
-            editor.getSession().setValue(textarea.val());
             editor.getSession().setMode("ace/mode/" + mode);
             editor.setTheme("ace/theme/twilight");
             editor.getSession().setTabSize(2);
+            $(this).css('visibility', 'visible');
+        })
+    })
 
-            // copy back to textarea on form submit...
-            $('#submit').mousedown(function () {
-                textarea.val(editor.getSession().getValue());
-            })
-
-        });
-    });
 });
 
 function submitRun() {
@@ -45,11 +26,19 @@ function submitRun() {
     $("#updates li").remove();
     $("#submit").prop('disabled', true);
 
+    var formData = {
+        'csrf_token'        : $('input[name=csrf_token]').val(),
+        'today'             : $('input[name=today]:checked').val(),
+        'hosts'             : ace.edit('hosts').getSession().getValue(),
+        'groups'            : ace.edit('groups').getSession().getValue(),
+        'defaults'          : ace.edit('defaults').getSession().getValue(),
+    };
+
     startPoll();
     $.ajax({
         type: 'POST',
         url: '/nornir',
-        data: $('form').serialize(),
+        data: formData,
         success: function(data, status, request) {
             $('#output').html(data.output).show();
             $("#submit").prop('disabled', false);

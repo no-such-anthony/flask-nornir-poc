@@ -1,36 +1,42 @@
 body {
   color: #eee;
-  background: #121212;
+  background: rgb(53, 53, 53);
+}
+
+.editor {
+  height: 630px;
+  width: 300px;
+  visibility: hidden;
 }
 
 .page-wrapper {
     display: flex;
     margin: 15px;
     background-color: rgb(53, 53, 53);
-  }
+}
   
-  .row {
+.row {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     width: 100%;
-  }
+}
   
-  .column {
+.column {
     display: flex;
     flex-direction: column;
     flex-basis: 100%;
     flex: 1;
-  }
+}
   
-  .big-column {
+.big-column {
     display: flex;
     flex-direction: column;
     flex-basis: 100%;
     flex: 3;
-  }
+}
   
-  .each-column {
+.each-column {
     height: auto;
-  }
+}
   
