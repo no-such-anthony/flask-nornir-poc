@@ -27,6 +27,7 @@ $(document).ready(function() {
             editor.getSession().setValue(textarea.val());
             editor.getSession().setMode("ace/mode/" + mode);
             editor.setTheme("ace/theme/twilight");
+            editor.getSession().setTabSize(2);
 
             // copy back to textarea on form submit...
             $('#submit').mousedown(function () {
