@@ -8,6 +8,7 @@ from os import urandom
 from pprint import pformat
 from queue import Queue
 from uuid import uuid4
+from copy import deepcopy
 
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -33,22 +34,6 @@ from runner_plugin import UpdateRunner
 RunnersPluginRegister.register("a_runner", UpdateRunner)
 
 
-def dict2html(d):
-    h = f'<ul>\n'
-    if isinstance(d, dict):
-        for k,v in d.items():        
-            if isinstance(v, (list,dict)):
-                h += f'<li>{k}</li>\n'
-                h += dict2html(v)
-            else:            
-                h += f'<li>{k}: {v}</li>\n'
-    if isinstance(d,list):
-        for v in d:
-            h += f'<li>{v}</li>\n'
-    h += f'</ul>\n'
-    return h
-
-
 def results2html(results):
     norn = ''
     for device_name, multi_result in sorted(results.items()):
@@ -69,33 +54,43 @@ def results2html(results):
                 
     return norn
 
+def tidyIt(host, options):
+    newDict = {}
+    for k,v in options.items():
+        if k=='extras' and v!={}:
+            newDict[k] = v
+            continue
+        if k!='extras' and host.__getattribute__(k) != v:
+            newDict[k] = v
+            continue
+    return newDict
 
-def inv2html(nr):
-    norn = ''
+
+def inv2yaml(nr):
+    norn = {}
     for name, host in nr.inventory.hosts.items():
-        norn += f'<p>{name}</p>\n'
-        norn += f'<ul>\n'
-        norn += f'<li>hostname: {host.hostname}</li>\n'
-        norn += f'<li>platform: {host.platform}</li>\n'
-        norn += f'<li>hostname: {host.username}</li>\n'
-        norn += f'<li>platform: {host.password}</li>\n'
-        norn += f'<li>port: {host.port}</li>\n'
-        norn += f'<li>groups:</li>\n'
+        norn[name] = {}
+        norn[name]['hostname'] = host.hostname
+        norn[name]['platform'] = host.platform
+        norn[name]['username'] = host.username
+        norn[name]['password'] = host.password
+        norn[name]['port'] = host.port
         try:
             #hot off nornir development press #fix_621
-            norn += dict2html(host.extended_groups())  
+            norn[name]['groups'] = [ str(group) for group in host.extended_groups() ]
         except AttributeError:
             #fall back to host.groups
-            norn += dict2html(host.groups)
-        norn += f'<li>data:</li>\n'
-        norn += dict2html(dict(host.items()))
-        norn += f'<li>connection_options:</li>\n'
-        norn += f'<ul>\n'
+            norn[name]['groups'] = [ str(group) for group in host.groups ]
+        norn[name]['data'] = deepcopy(dict(host.items()))
+        norn[name]['connection_options'] = {}
         for conn_type in ['netmiko','napalm']:
-            norn += f'<li>{conn_type}</li>'
-            norn += dict2html(host.get_connection_parameters(conn_type).dict())
-        norn += f'</ul>\n'
-        norn += f'</ul>\n'
+            norn[name]['connection_options'][conn_type] = tidyIt(host,
+                deepcopy(host.get_connection_parameters(conn_type).dict()))
+
+    norn2yaml = yaml.safe_dump(norn, sort_keys=False)
+    norn = "<pre>\n"
+    norn += norn2yaml
+    norn += "</pre>\n"
     return norn
     
 
@@ -112,7 +107,7 @@ def nornir_inv(hosts, groups, defaults):
                                         "groups": groups,
                                         "defaults": defaults
                         }}) as nr:
-            norn = inv2html(nr)
+            norn = inv2yaml(nr)
 
     except Exception as e:
         norn = f'<pre>{traceback.format_exc()}</pre>'
