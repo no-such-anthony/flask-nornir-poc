@@ -1,5 +1,4 @@
-yhosts = """
-sbx-iosxr-mgmt:
+yhosts = """sbx-iosxr-mgmt:
   hostname: sbx-iosxr-mgmt.cisco.com
   username: admin
   password: C1sco12345
@@ -27,8 +26,7 @@ ios-xe-mgmt-latest.cisco.com:
     - slow
 """
 
-ygroups = """
-slower:
+ygroups = """slower:
   connection_options:
     netmiko:
       extras:
