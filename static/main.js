@@ -22,7 +22,7 @@ $(document).ready(function() {
 function submitRun() {
     // send ajax POST request to start background job
     $('#output').html("<h2>running...</h2>").show()
-    $("#progress").html('').show();
+    $("#progress").empty();
     $("#updates li").remove();
     $("#submit").prop('disabled', true);
 
