@@ -4,7 +4,6 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}" />
     </head>
 <body>
-<form action = "http://localhost:5000/" method = "post">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 <div class='page-wrapper'>
     <div class='row'>
@@ -36,20 +35,19 @@
       <div class='column'>
         <div class='each-column'>
           <p>Hosts</p>
-          <textarea name="hosts" id="hosts" cols="42" rows="40" data-editor="yaml" style="overflow:scroll;">{{ hosts }}</textarea>
+          <div id="hosts" class="editor" data-editor="yaml">{{ hosts }}</div>
         </div>
       </div>
       <div class='column'>
         <div class='each-column'>
           <p>Groups</p>
-          <textarea name="groups" id="groups" cols="42" rows="40" data-editor="yaml" style="overflow:scroll;">{{ groups }}</textarea>
+          <div id="groups" class="editor" data-editor="yaml">{{ groups }}</div>
           <p>Defaults</p>
-          <textarea name="defaults" id="defaults" cols="42" rows="40" data-editor="yaml" style="overflow:scroll;">{{ defaults }}</textarea>
+          <div id="defaults" class="editor" data-editor="yaml">{{ defaults }}</div>
         </div>
       </div>
     </div>
   </div>
-</form>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"  type="text/javascript" charset="utf-8"></script>
