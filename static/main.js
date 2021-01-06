@@ -1,10 +1,40 @@
 $(document).ready(function() {
 
-  //click behaviour for main buttons
-  $('#submit').click(function() {
-      submitRun();
-  });
+    //click behaviour for main buttons
+    $('#submit').click(function() {
+        submitRun();
+    });
 
+    // Hook up ACE editor to all textareas with data-editor attribute
+    $(function () {
+        $('textarea[data-editor]').each(function () {
+            var textarea = $(this);
+            var mode = textarea.data('editor');
+
+            var editDiv = $('<div>', {
+                position: 'absolute',
+                width: textarea.width(),
+                height: textarea.height(),
+                'class': textarea.attr('class')
+            }).insertBefore(textarea);
+
+            textarea.css('visibility', 'hidden');
+            textarea.css('width', '0');
+            textarea.css('height', '0');
+
+            var editor = ace.edit(editDiv[0]);
+            editor.renderer.setShowGutter(false);
+            editor.getSession().setValue(textarea.val());
+            editor.getSession().setMode("ace/mode/" + mode);
+            editor.setTheme("ace/theme/twilight");
+
+            // copy back to textarea on form submit...
+            $('#submit').mousedown(function () {
+                textarea.val(editor.getSession().getValue());
+            })
+
+        });
+    });
 });
 
 function submitRun() {
