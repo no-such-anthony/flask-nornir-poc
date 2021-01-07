@@ -78,8 +78,6 @@ def nornir():
     s.data['defaults'] = request.form['defaults']
     s.data['option'] = request.form['today']
 
-    s.data['progress'] = ''
-    s.data['updates'] = Queue()
 
     try:
         hosts = yaml.safe_load(s.data['hosts'])
@@ -124,6 +122,7 @@ def poll():
             update = s.data['updates'].get()
             updates += f'<li>{update}</li>\n'
         progress = s.data['progress']
+        s.data['progress'] = ''
     else:
         pass
 
