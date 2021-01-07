@@ -5,6 +5,7 @@ import json
 import traceback
 from copy import deepcopy
 from pprint import pformat
+from collections import OrderedDict
 
 
 # Import and register custom inventory
@@ -62,7 +63,7 @@ def nornir_run(hosts, groups, defaults, updater):
 
 def custom_task(task):
     cmd = 'show version'
-    result = task.run(task=netmiko_send_command, name=cmd, command_string=cmd)
+    result = task.run(task=netmiko_send_command, name=cmd, command_string=cmd, use_textfsm=True)
 
 
 def results2html(results):

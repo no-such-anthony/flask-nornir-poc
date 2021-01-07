@@ -70,7 +70,9 @@ function poll() {
         success: function(data) {
             console.log("polling");
             $("#updates").append(data.updates);
-            $("#progress").html(data.progress).show()
+            if (data.progress!=='') {
+                $("#progress").html(data.progress).show()
+            }
         },
         dataType: "json",
         timeout: 2000
