@@ -78,6 +78,9 @@ def nornir():
     s.data['defaults'] = request.form['defaults']
     s.data['option'] = request.form['today']
 
+    s.data['progress'] = ''
+    s.data['updates'] = Queue()
+
     try:
         hosts = yaml.safe_load(s.data['hosts'])
         groups = yaml.safe_load(s.data['groups'])
