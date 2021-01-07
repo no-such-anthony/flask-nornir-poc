@@ -5,6 +5,7 @@ import json
 import traceback
 from copy import deepcopy
 from pprint import pformat
+from collections import OrderedDict
 
 
 # Import and register custom inventory
