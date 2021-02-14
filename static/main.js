@@ -1,66 +1,76 @@
-$(document).ready(function() {
+let socket;
 
-    //click behaviour for main buttons
-    $('#submit').click(function() {
+document.addEventListener("DOMContentLoaded", () => {
+
+    socket = io();
+    
+    document.getElementById("submit").addEventListener("click", () => {
         submitRun(socket.id);
     });
 
-    var socket = io();
     socket.on('connect', function() {
         console.log('client connected');
     });
 
     socket.on('update', function(msg) {
-        $("#updates").append('<li>'+msg+'</li>');
+        document.getElementById("updates").innerHTML += '<li>'+msg+'</li>';
     });
 
     socket.on('progress', function(msg) {
-        $("#progress").html(msg).show();
+        document.getElementById("progress").innerHTML = msg;
     });
 
-    $(function () {
-        $('div[data-editor]').each(function () {
-            var mode = $(this).data('editor');
-            editor = ace.edit($(this)[0]);
-            editor.renderer.setShowGutter(false);
-            editor.getSession().setMode("ace/mode/" + mode);
-            editor.setTheme("ace/theme/twilight");
-            editor.getSession().setTabSize(2);
-            $(this).css('visibility', 'visible');
-        })
-    })
+    document.querySelectorAll("div[data-editor]").forEach( el => {
+        let mode = el.dataset.editor;
+        editor = ace.edit(el);
+        editor.renderer.setShowGutter(false);
+        editor.getSession().setMode("ace/mode/" + mode);
+        editor.setTheme("ace/theme/twilight");
+        editor.getSession().setTabSize(2);
+        el.style.visibility = "visible";
+    });
 
 });
 
 function submitRun(socket_id) {
     // send ajax POST request to start background job
-    $('#output').html("<h2>running...</h2>").show()
-    $("#progress").empty();
-    $("#updates li").remove();
-    $("#submit").prop('disabled', true);
+    document.getElementById("output").innerHTML = "<h2>running...</h2>";
+    document.getElementById("submit").disabled = true;
+    document.getElementById("progress").innerHTML = "";
+    document.getElementById("updates").innerHTML = "";
 
-    var formData = {
-        'csrf_token'        : $('input[name=csrf_token]').val(),
-        'socket_id'         : socket_id,
-        'today'             : $('input[name=today]:checked').val(),
-        'hosts'             : ace.edit('hosts').getSession().getValue(),
-        'groups'            : ace.edit('groups').getSession().getValue(),
-        'defaults'          : ace.edit('defaults').getSession().getValue(),
+    let formData = new FormData();
+    formData.append('csrf_token', document.querySelector('input[name=csrf_token]').value);
+    formData.append('socket_id',socket_id);
+    formData.append('today', document.querySelector('input[name=today]:checked').value);
+    formData.append('hosts', ace.edit('hosts').getSession().getValue());
+    formData.append('groups', ace.edit('groups').getSession().getValue());
+    formData.append('defaults', ace.edit('defaults').getSession().getValue());
+
+    const options = {
+        method: 'POST',
+        body: formData
     };
 
-    $.ajax({
-        type: 'POST',
-        url: '/nornir',
-        data: formData,
-        success: function(data, status, request) {
-            $('#output').html(data.output).show();
-            $("#submit").prop('disabled', false);
-        },
-        error: function() {
-            $('#output').html("Unexpected error.  Try refreshing the page.").show();
-        }
-    });
+    fetch('/nornir', options)
+        .then(
+            function(response) {
+                if (response.status !== 200) {
+                    document.getElementById('output').innerHTML = "Unexpected error.  Try refreshing the page?";
+                    console.log('Response Error. Status Code: ' + response.status);
+                    return;
+                }
 
+                response.json().then( data => {
+                    document.getElementById('output').innerHTML = data.output;
+                    document.getElementById('submit').disabled = false;
+                });
+            }
+        )
+        .catch(function(err) {
+            document.getElementById('output').innerHTML = "Unexpected error.  Try refreshing the page?";
+            console.log('Fetch Error :-S', err);
+        });
 
 }
 
